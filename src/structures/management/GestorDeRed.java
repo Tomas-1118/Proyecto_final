@@ -42,21 +42,21 @@ public class GestorDeRed {
     // =========================================================================
     // SECCIÓN 1: HISTORIAL Y EVENTOS
     // =========================================================================
-
+    // TODO 1:
     public void agregarEvento(String evento) {
-        // TODO 1: Implementar la adición del evento al historial.
-        // Debe registrarse la fecha/hora actual junto con la descripción del evento.
-        // Ejemplo: "[2026-10-24 10:00] Sensor EST-01 activado"
+        String registro = "[" + new java.util.Date() + "] " + evento;
+        historialEventos.add(registro);
     }
 
     public List<String> obtenerEventosRecientes(int limite) {
         if (historialEventos.size() <= limite) return new ArrayList<>(historialEventos);
         return historialEventos.subList(historialEventos.size() - limite, historialEventos.size());
     }
-
+    // Todo 10
     public void limpiarHistorialAntiguo(int mantener) {
-        // TODO 10: Implementar la optimización del historial.
-        // Eliminar los registros más antiguos para mantener solo los últimos 'mantener' eventos.
+        while (historialEventos.size() > mantener) {
+            historialEventos.remove(0);
+        }
     }
 
     // =========================================================================
@@ -67,19 +67,31 @@ public class GestorDeRed {
         navegadorAlertas.addLast(alerta);
         alertaActual = alerta;
     }
-
+    // Todo 2
     public String navegarAlSiguiente() {
-        // TODO 2: Implementar la lógica de desplazamiento hacia adelante.
-        // Debe devolver la siguiente alerta o null si no hay más.
-        // Recuerda actualizar el estado de 'alertaActual'.
-        return null;
-    }
+        String siguiente = navegadorAlertas.pollFirst();
 
+        if (siguiente == null) {
+            return null;
+        }
+
+        navegadorAlertas.addLast(siguiente);
+        alertaActual = siguiente;
+
+        return alertaActual;
+    }
+    // Todo 3
     public String navegarAlAnterior() {
-        // TODO 3: Implementar la lógica de desplazamiento hacia atrás.
-        // Debe devolver la alerta anterior o null si es la primera.
-        // Recuerda actualizar el estado de 'alertaActual'.
-        return null;
+        String anterior = navegadorAlertas.pollLast();
+
+        if (anterior == null) {
+            return null;
+        }
+
+        navegadorAlertas.addFirst(anterior);
+        alertaActual = anterior;
+
+        return alertaActual;
     }
 
     public String getAlertaActual() { return alertaActual; }
@@ -87,40 +99,54 @@ public class GestorDeRed {
     // =========================================================================
     // SECCIÓN 3: CICLO DE MONITOREO
     // =========================================================================
-
+    // Todo 4
     public void programarConsulta(String idSensor) {
-        // TODO 4: Implementar la programación de la consulta.
-        // El sensor debe agregarse a la cola solo si NO está ya programado.
+        if (!colaMonitoreo.contains(idSensor)) {
+            colaMonitoreo.offer(idSensor);
+        }
     }
-
+    // Todo 5
     public String obtenerSiguienteSensor() {
-        // TODO 5: Implementar la rotación del ciclo.
-        // Debe extraer el sensor del frente de la cola y volverlo a insertar al final
-        // para garantizar que todos los sensores sean consultados continuamente.
-        return null;
+        String sensor = colaMonitoreo.poll();
+
+        if (sensor != null) {
+            colaMonitoreo.offer(sensor);
+        }
+
+        return sensor;
     }
 
     // =========================================================================
     // SECCIÓN 4: TOPOLOGÍA DE RED
     // =========================================================================
-
+    // Todo 6
     public void registrarConexion(String sensorA, String sensorB) {
-        // TODO 6: Implementar la conexión bidireccional entre dos sensores.
-        // Debe agregar sensorB a la lista de vecinos de sensorA, y viceversa.
-        // Asegurar que no se creen conexiones duplicadas.
-    }
+        topologiaRed.computeIfAbsent(sensorA, k -> new ArrayList<>());
+        topologiaRed.computeIfAbsent(sensorB, k -> new ArrayList<>());
 
+        if (!topologiaRed.get(sensorA).contains(sensorB)) {
+            topologiaRed.get(sensorA).add(sensorB);
+        }
+
+        if (!topologiaRed.get(sensorB).contains(sensorA)) {
+            topologiaRed.get(sensorB).add(sensorA);
+        }
+    }
+    // Todo 7
     public List<String> obtenerVecinos(String idSensor) {
-        // TODO 7: Implementar la consulta de conexiones.
-        // Debe devolver la lista de sensores conectados al idSensor proporcionado.
-        // Retornar una lista vacía si el sensor no tiene conexiones.
-        return null;
+        return topologiaRed.getOrDefault(idSensor, new ArrayList<>());
     }
-
+    // Todo 9
     public List<String> detectarEstacionesAisladas() {
-        // TODO 9: Implementar la detección de nodos huérfanos.
-        // Debe retornar una lista de todos los sensores registrados que no tienen ninguna conexión.
-        return null;
+        List<String> aisladas = new ArrayList<>();
+
+        for (Map.Entry<String, List<String>> estacion : topologiaRed.entrySet()) {
+            if (estacion.getValue().isEmpty()) {
+                aisladas.add(estacion.getKey());
+            }
+        }
+
+        return aisladas;
     }
 
     // =========================================================================
@@ -130,16 +156,14 @@ public class GestorDeRed {
     public void recibirLectura(LecturaSensor lectura) {
         bufferIngesta.add(lectura);
     }
-
+    // Todo 8
     public LecturaSensor procesarSiguienteLectura() {
-        // TODO 8: Implementar la extracción del buffer.
-        // Debe remover y devolver la lectura más antigua del buffer (FIFO).
-        return null;
+        return bufferIngesta.poll();
     }
-
+    // Todo Extra:
     public List<LecturaSensor> filtrarAlertasCriticas(double limitePm25) {
-        // TODO EXTRA: Usar Streams para filtrar lecturas con PM2.5 superior al límite.
-        // Debe retornar una lista con las lecturas filtradas.
-        return null;
+        return bufferIngesta.stream()
+                .filter(lectura -> lectura.getPm25() > limitePm25)
+                .collect(Collectors.toList());
     }
 }
